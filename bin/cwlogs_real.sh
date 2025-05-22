@@ -193,12 +193,56 @@ cat <<EOF >> "$HTML_FILE"
 </html>
 EOF
 
-# 打开浏览器查看
-ABS_PATH="$(cd "$(dirname "$HTML_FILE")"; pwd)/$(basename "$HTML_FILE")"
+# 处理 --keep 参数
+KEEP_HTML=false
+for arg in "$@"; do
+  if [[ "$arg" == "--keep" ]]; then
+    KEEP_HTML=true
+    break
+  fi
+done
+
+# 写入临时目录
+HTML_FILE="/tmp/cloudwatch_logs_$(date +%Y%m%d_%H%M%S).html"
+
+# 输出 HTML 文件内容（假设你前面已经生成好了内容）
+cat > "$HTML_FILE" <<EOF
+<html><head><meta charset='UTF-8'><title>CloudWatch Logs</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ddd; padding: 8px; }
+th { background-color: #f4f4f4; text-align: left; }
+tr:hover { background-color: #f1f1f1; }
+pre { margin: 0; white-space: pre-wrap; }
+</style>
+</head><body>
+<h2>CloudWatch Logs Output</h2>
+<table><tr><th>Message</th></tr>
+<!-- 以下内容由你之前 jq 渲染循环填充 -->
+EOF
+
+echo "$RESULT_JSON" | jq -c '.results[]' | while read -r row; do
+  msg=$(echo "$row" | jq -r '.[] | select(.field=="@message").value')
+  echo "<tr><td><pre>$msg</pre></td></tr>" >> "$HTML_FILE"
+done
+
+echo "</table></body></html>" >> "$HTML_FILE"
+
+# 打开浏览器
 if which open >/dev/null; then
-  open "$ABS_PATH"
+  open "$HTML_FILE"
 elif which xdg-open >/dev/null; then
-  xdg-open "$ABS_PATH"
+  xdg-open "$HTML_FILE"
 else
-  echo "✅ HTML saved to: $ABS_PATH (Please open it manually)"
+  echo "✅ HTML saved to: $HTML_FILE"
+fi
+
+# 延迟删除（除非 --keep）
+if [ "$KEEP_HTML" = false ]; then
+  echo "🧹 This file will be deleted after 5 seconds..."
+  sleep 5
+  rm -f "$HTML_FILE"
+else
+  echo "📄 Kept file: $HTML_FILE"
 fi
