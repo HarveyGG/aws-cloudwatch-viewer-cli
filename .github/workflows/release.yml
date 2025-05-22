@@ -52,4 +52,4 @@ jobs:
 
           git add Formula/cwlogs.rb
           git commit -m "Update cwlogs formula to $TAG"
-          git push origin main
+          git push origin HEAD
