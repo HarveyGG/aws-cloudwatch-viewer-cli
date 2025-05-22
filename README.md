@@ -22,6 +22,7 @@
 ```bash
 brew tap HarveyGG/cwlogs
 brew install cwlogs
+```
 
 ## Upgrade to latest:
 ```
