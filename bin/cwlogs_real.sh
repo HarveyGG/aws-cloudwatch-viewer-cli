@@ -144,7 +144,18 @@ if [ "$STATUS" != "Complete" ]; then
 fi
 
 RESULT_JSON=$(aws logs get-query-results --query-id "$QUERY_ID" --region "$REGION")
-HTML_FILE="cloudwatch_logs_$(date +%Y%m%d_%H%M%S).html"
+
+# 处理 --keep 参数
+KEEP_HTML=false
+for arg in "$@"; do
+  if [[ "$arg" == "--keep" ]]; then
+    KEEP_HTML=true
+    break
+  fi
+done
+
+# 写入 /tmp 目录
+HTML_FILE="/tmp/cloudwatch_logs_$(date +%Y%m%d_%H%M%S).html"
 
 # 写入 HTML 表头
 cat <<EOF > "$HTML_FILE"
@@ -159,6 +170,7 @@ cat <<EOF > "$HTML_FILE"
     th { background-color: #f4f4f4; text-align: left; }
     tr:hover { background-color: #f1f1f1; }
     pre { margin: 0; white-space: pre-wrap; }
+    mark { background-color: yellow; }
   </style>
 </head>
 <body>
@@ -167,7 +179,7 @@ cat <<EOF > "$HTML_FILE"
     <tr><th>Message</th></tr>
 EOF
 
-# 解析结果并输出日志行
+# 高亮函数
 highlight_msg() {
   local raw="$1"
   local patterns="$HIGHLIGHT_PATTERNS"
@@ -180,54 +192,20 @@ highlight_msg() {
   done
   echo "$raw"
 }
+
+# 写入内容
 echo "$RESULT_JSON" | jq -c '.results[]' | while read -r row; do
   raw_msg=$(echo "$row" | jq -r '.[] | select(.field=="@message").value')
   msg=$(highlight_msg "$raw_msg")
-  echo "<tr><td><pre>$msg</pre></td></tr>"
-done >> "$HTML_FILE"
+  echo "<tr><td><pre>$msg</pre></td></tr>" >> "$HTML_FILE"
+done
 
-# 收尾 HTML
+# 写入 HTML 尾部
 cat <<EOF >> "$HTML_FILE"
   </table>
 </body>
 </html>
 EOF
-
-# 处理 --keep 参数
-KEEP_HTML=false
-for arg in "$@"; do
-  if [[ "$arg" == "--keep" ]]; then
-    KEEP_HTML=true
-    break
-  fi
-done
-
-# 写入临时目录
-HTML_FILE="/tmp/cloudwatch_logs_$(date +%Y%m%d_%H%M%S).html"
-
-# 输出 HTML 文件内容（假设你前面已经生成好了内容）
-cat > "$HTML_FILE" <<EOF
-<html><head><meta charset='UTF-8'><title>CloudWatch Logs</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #ddd; padding: 8px; }
-th { background-color: #f4f4f4; text-align: left; }
-tr:hover { background-color: #f1f1f1; }
-pre { margin: 0; white-space: pre-wrap; }
-</style>
-</head><body>
-<h2>CloudWatch Logs Output</h2>
-<table><tr><th>Message</th></tr>
-<!-- 以下内容由你之前 jq 渲染循环填充 -->
-EOF
-
-echo "$RESULT_JSON" | jq -c '.results[]' | while read -r row; do
-  msg=$(echo "$row" | jq -r '.[] | select(.field=="@message").value')
-  echo "<tr><td><pre>$msg</pre></td></tr>" >> "$HTML_FILE"
-done
-
-echo "</table></body></html>" >> "$HTML_FILE"
 
 # 打开浏览器
 if which open >/dev/null; then
@@ -238,7 +216,7 @@ else
   echo "✅ HTML saved to: $HTML_FILE"
 fi
 
-# 延迟删除（除非 --keep）
+# 删除逻辑
 if [ "$KEEP_HTML" = false ]; then
   echo "🧹 This file will be deleted after 5 seconds..."
   sleep 5
@@ -246,3 +224,4 @@ if [ "$KEEP_HTML" = false ]; then
 else
   echo "📄 Kept file: $HTML_FILE"
 fi
+
