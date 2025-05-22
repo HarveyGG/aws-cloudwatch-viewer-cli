@@ -24,7 +24,7 @@ brew tap HarveyGG/cwlogs
 brew install cwlogs
 ```
 
-## Upgrade to latest:
+### Upgrade to latest:
 ```
 brew update
 brew upgrade cwlogs
