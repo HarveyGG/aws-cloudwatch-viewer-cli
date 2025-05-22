@@ -36,20 +36,18 @@ jobs:
           cd tap
 
           mkdir -p Formula
-          cat <<'EOF'> Formula/cwlogs.rb
-class Cwlogs < Formula
-  desc "AWS CloudWatch Log Viewer with HTML output, alias & highlight support"
-  homepage "https://github.com/HarveyGG/aws-cloudwatch-viewer-cli"
-  url "$TAR_URL"
-  sha256 "$SHA"
-  version "${TAG#v}"
-
-  def install
-    bin.install "bin/cwlogs"
-    bin.install "bin/cwlogs_real.sh"
-  end
-end
-EOF
+          echo "class Cwlogs < Formula" > Formula/cwlogs.rb
+          echo "  desc \"AWS CloudWatch Log Viewer with HTML output, alias & highlight support\"" >> Formula/cwlogs.rb
+          echo "  homepage \"https://github.com/HarveyGG/aws-cloudwatch-viewer-cli\"" >> Formula/cwlogs.rb
+          echo "  url \"$TAR_URL\"" >> Formula/cwlogs.rb
+          echo "  sha256 \"$SHA\"" >> Formula/cwlogs.rb
+          echo "  version \"\${TAG#v}\"" >> Formula/cwlogs.rb
+          echo "" >> Formula/cwlogs.rb
+          echo "  def install" >> Formula/cwlogs.rb
+          echo "    bin.install \"bin/cwlogs\"" >> Formula/cwlogs.rb
+          echo "    bin.install \"bin/cwlogs_real.sh\"" >> Formula/cwlogs.rb
+          echo "  end" >> Formula/cwlogs.rb
+          echo "end" >> Formula/cwlogs.rb
 
 
           git add Formula/cwlogs.rb
