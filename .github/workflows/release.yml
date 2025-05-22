@@ -3,7 +3,7 @@ name: Release cwlogs via tag
 on:
   push:
     tags:
-      - 'v*.*.*'  # 例如 v0.4.0、v1.0.0
+      - 'v*.*.*'
 
 jobs:
   update-tap:
@@ -14,8 +14,8 @@ jobs:
 
       - name: Set up Git
         run: |
-          git config --global user.email "release-bot@github.com"
           git config --global user.name "release-bot"
+          git config --global user.email "release-bot@example.com"
 
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y curl
@@ -24,15 +24,15 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           TAP_REPO: HarveyGG/homebrew-cwlogs
+          TAP_BRANCH: brew-release
           GITHUB_TOKEN: ${{ secrets.TAP_TOKEN }}
         run: |
-          echo "🔧 Using tag: $TAG"
+          echo "📦 Using tag: $TAG"
           TAR_URL="https://github.com/HarveyGG/aws-cloudwatch-viewer-cli/archive/refs/tags/$TAG.tar.gz"
           curl -LO "$TAR_URL"
           SHA=$(shasum -a 256 "$TAG.tar.gz" | awk '{print $1}')
-
-          # Clone tap repo
-          git clone https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$TAP_REPO.git tap
+          
+          git clone --branch "$TAP_BRANCH" https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$TAP_REPO.git tap
           cd tap
 
           mkdir -p Formula
@@ -41,7 +41,7 @@ jobs:
           echo "  homepage \"https://github.com/HarveyGG/aws-cloudwatch-viewer-cli\"" >> Formula/cwlogs.rb
           echo "  url \"$TAR_URL\"" >> Formula/cwlogs.rb
           echo "  sha256 \"$SHA\"" >> Formula/cwlogs.rb
-          echo "  version \"\${TAG#v}\"" >> Formula/cwlogs.rb
+          echo "  version \"${TAG#v}\"" >> Formula/cwlogs.rb
           echo "" >> Formula/cwlogs.rb
           echo "  def install" >> Formula/cwlogs.rb
           echo "    bin.install \"bin/cwlogs\"" >> Formula/cwlogs.rb
@@ -49,7 +49,6 @@ jobs:
           echo "  end" >> Formula/cwlogs.rb
           echo "end" >> Formula/cwlogs.rb
 
-
           git add Formula/cwlogs.rb
           git commit -m "Update cwlogs formula to $TAG"
-          git push origin HEAD
+          git push origin "$TAP_BRANCH"
